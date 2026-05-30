@@ -27,5 +27,13 @@ export async function logout() {
   return response.data
 }
 
+export async function getuser() {
+  let response = await AuthapiInsatance.get("/me");
+  return response.data
+}
+
+
+
+
 
 

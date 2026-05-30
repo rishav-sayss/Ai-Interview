@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
 import { setLoading, setError } from "../state/auth.state";
 import { useHooks } from "../Hooks/auth.hooks.js";
+import GoogleButton from "../components/GoogleButton.jsx";
 
 function Register() {
   const dispatch = useDispatch();
@@ -143,6 +144,14 @@ function Register() {
             {loading ? "Registering..." : "Register"}
           </button>
         </form>
+
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-gray-200" />
+          <span className="text-xs font-semibold uppercase text-gray-500">or</span>
+          <div className="h-px flex-1 bg-gray-200" />
+        </div>
+
+        <GoogleButton disabled={loading} />
 
         <p className="text-center text-gray-600 mt-6 text-sm">
           Already have an account?{" "}

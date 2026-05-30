@@ -6,10 +6,27 @@ const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
+const generateUniqueUsername = async (displayName, email) => {
+  const baseUsername = (displayName || email.split("@")[0])
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 24) || "googleuser";
+
+  let username = baseUsername;
+  let suffix = 1;
+
+  while (await User.exists({ username })) {
+    username = `${baseUsername}${suffix}`;
+    suffix += 1;
+  }
+
+  return username;
+};
+
 // Register user
 export const register = async (req, res) => {
   try {
-    const { username, email, password} = req.body;
+    const { username, email, password } = req.body;
     // Validate input
     if (!username || !email || !password) {
       return res.status(400).json({
@@ -36,8 +53,7 @@ export const register = async (req, res) => {
       email,
       password,
     });
-    
- 
+
     // Generate token
     const token = generateToken(user._id);
 
@@ -147,6 +163,46 @@ export const logout = (req, res) => {
   }
 };
 
+export const googlecallback = async (req, res) => {
+  try {
+    const { id, displayName, emails = [], photos = [] } = req.user;
+    const email = emails[0]?.value;
+    const profilePic = photos[0]?.value;
+
+    if (!email) {
+      return res.redirect(
+        "http://localhost:5173/login?error=google_email_missing",
+      );
+    }
+
+    let user = await User.findOne({
+      $or: [{ email }, { googleId: id }],
+    });
+
+    if (!user) {
+      user = await User.create({
+        email,
+        googleId: id,
+        username: displayName
+      });
+    } 
+
+    const token = generateToken(user._id);
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.redirect("http://localhost:5173/");
+  } catch (error) {
+    console.error("Google callback error:", error);
+    return res.redirect(
+      "http://localhost:5173/login?error=google_login_failed",
+    );
+  }
+};
+
 // Get current user
 export const getCurrentUser = async (req, res) => {
   try {
@@ -165,8 +221,6 @@ export const getCurrentUser = async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
       },
     });
   } catch (error) {

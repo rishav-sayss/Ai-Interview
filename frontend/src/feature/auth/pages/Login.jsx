@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
 import { setUser, setLoading, setError } from "../state/auth.state";
 import {useHooks} from "../Hooks/auth.hooks.js"
+import GoogleButton from "../components/GoogleButton.jsx";
 
 function Login() {
   const dispatch = useDispatch();
@@ -24,8 +25,9 @@ function Login() {
     try {
       dispatch(setLoading(true));
       const data = await handleLogin(formData);
+      console.log(data.user)
       dispatch(setUser(data.user));
-      navigate("/");
+      navigate("/Aichat");
     } catch (loginError) {
       dispatch(
         setError(loginError.response?.data?.message || "Unable to login")
@@ -113,6 +115,14 @@ function Login() {
           </button>
         </form>
 
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-gray-200" />
+          <span className="text-xs font-semibold uppercase text-gray-500">or</span>
+          <div className="h-px flex-1 bg-gray-200" />
+        </div>
+
+        <GoogleButton disabled={loading} />
+
         <p className="text-center text-gray-600 mt-6 text-sm">
           Don't have an account?{" "}
           <Link to="/register" className="text-black font-semibold hover:underline">
@@ -125,4 +135,3 @@ function Login() {
 }
 
 export default Login;
-

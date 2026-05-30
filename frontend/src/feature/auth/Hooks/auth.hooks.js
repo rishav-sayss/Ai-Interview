@@ -1,5 +1,5 @@
-import { login, register, logout } from "../service/auth.service.js";
-import { setUser } from "../state/auth.state.js";
+import { login, register, logout, getuser } from "../service/auth.service.js";
+import { setLoading, setUser } from "../state/auth.state.js";
 import { useDispatch } from "react-redux";
 
 export function useHooks() {
@@ -23,5 +23,19 @@ export function useHooks() {
     return data;
   };
 
-  return { handelregister, handleLogin, handleLogout };
+  const handelgetme = async () => {
+    try {
+         dispatch(setLoading(true))
+         const data = await getuser()
+         console.log(data.user)
+        dispatch(setUser(data.user))
+    } catch (error) {
+      console.log(error)
+    }
+    finally{
+      dispatch(setLoading(false))
+    }
+  };
+
+  return { handelregister, handleLogin, handleLogout ,handelgetme };
 }
