@@ -1,23 +1,20 @@
 import dotenv from "dotenv";
+dotenv.config();
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
-
-dotenv.config({
-  path: resolve(dirname(fileURLToPath(import.meta.url)), "../.env"),
-  quiet: true,
-});
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./Routes/auth.routes.js";
+import resumeRoutes from "./Routes/resume.routes.js";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:5173",
-    methods: [ "GET", "POST", "PUT", "DELETE" ],
+    origin: ["http://localhost:5173", "http://localhost:5174"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   }),
 );
@@ -47,5 +44,6 @@ app.use(cookieParser());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/resume", resumeRoutes);
 
 export default app;
