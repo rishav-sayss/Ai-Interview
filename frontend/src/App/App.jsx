@@ -11,7 +11,7 @@ function App() {
 
   useEffect(() => {
     handelgetme();
-  }, []);
+  }, [handelgetme]);
 
   return <RouterProvider router={routes} />;
 }

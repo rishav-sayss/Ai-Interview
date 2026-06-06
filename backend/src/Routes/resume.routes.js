@@ -1,7 +1,5 @@
 import express from "express";
 import multer from "multer";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import pdfParse from "pdf-parse";
 import { uploadResume } from "../controller/resume.controller.js";
 
 const router = express.Router();
@@ -16,6 +14,24 @@ const upload = multer({
   },
 });
 
-router.post("/analyze", upload.single("resume"), uploadResume);
+const handleResumeUpload = (req, res, next) => {
+  upload.single("resume")(req, res, (error) => {
+    if (!error) {
+      next();
+      return;
+    }
+
+    const isFileTooLarge = error.code === "LIMIT_FILE_SIZE";
+
+    res.status(400).json({
+      success: false,
+      message: isFileTooLarge
+        ? "Resume must be smaller than 10 MB."
+        : error.message || "Invalid resume upload.",
+    });
+  });
+};
+
+router.post("/analyze", handleResumeUpload, uploadResume);
 
 export default router;

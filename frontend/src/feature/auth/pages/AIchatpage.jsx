@@ -10,6 +10,8 @@ const INTERVIEW_TYPES = [
   "HR Interview",
 ];
 
+const MAX_RESUME_SIZE = 10 * 1024 * 1024;
+
 const FEATURES = [
   {
     icon: (
@@ -214,17 +216,27 @@ function AIchatpage() {
   // Flash highlight state
   const [flash, setFlash] = useState({ role: false, experience: false, interviewType: false });
 
-  const triggerFlash = (fields) => {
+  const triggerFlash = useCallback((fields) => {
     setFlash((prev) => ({ ...prev, ...fields }));
     setTimeout(() => setFlash({ role: false, experience: false, interviewType: false }), 900);
-  };
+  }, []);
 
   /* ── File handling ──────────────────────────────────────────────────────── */
   const handleFile = useCallback(async (selectedFile) => {
-    if (!selectedFile || selectedFile.type !== "application/pdf") {
+    const isPdf =
+      selectedFile?.type === "application/pdf" ||
+      selectedFile?.name?.toLowerCase().endsWith(".pdf");
+
+    if (!selectedFile || !isPdf) {
       setError("Please upload a valid PDF file.");
       return;
     }
+
+    if (selectedFile.size > MAX_RESUME_SIZE) {
+      setError("Resume must be smaller than 10 MB.");
+      return;
+    }
+
     setError("");
     setFile(selectedFile);
     setAnalyzing(true);
@@ -232,8 +244,7 @@ function AIchatpage() {
 
     try {
       const result = await analyzeResume(selectedFile);
-      console.log("Analysis result:", result);
-      
+
       if (result.success && result.data) {
         const { role: r, experience: exp, interviewType: it, skills, projects } = result.data;
         const filled = {};
@@ -251,17 +262,33 @@ function AIchatpage() {
         setError(result.message || "AI analysis failed. You can fill in the fields manually.");
       }
     } catch (err) {
-      setError("⚠️ AI analysis error: " + (err.message || "Network error. Try again."));
+      setError("AI analysis error: " + (err.message || "Network error. Try again."));
       console.error("Resume analysis error:", err);
     } finally {
       setAnalyzing(false);
     }
-  }, []);
+  }, [triggerFlash]);
 
-  const onDrop = (e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); };
-  const onDragOver = (e) => { e.preventDefault(); setDragging(true); };
+  const onDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile) handleFile(droppedFile);
+  };
+
+  const onDragOver = (e) => {
+    e.preventDefault();
+    setDragging(true);
+  };
+
   const onDragLeave = () => setDragging(false);
-  const onFileInput = (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); };
+
+  const onFileInput = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) handleFile(selectedFile);
+    e.target.value = "";
+  };
 
   const handleClear = () => {
     setFile(null);

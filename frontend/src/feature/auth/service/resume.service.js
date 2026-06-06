@@ -1,37 +1,27 @@
 import axios from "axios";
 
+const RESUME_API_URL = "http://localhost:3000/api/resume";
+
 const resumeApi = axios.create({
-  baseURL: "http://localhost:3000/api/resume",
+  baseURL: RESUME_API_URL,
   withCredentials: true,
-  timeout: 120000, // 2 minutes timeout for AI analysis
+  timeout: 120000,
 });
 
 /**
- * Upload a PDF resume and get AI-extracted fields.
- * @param {File} file - The PDF file to analyze
- * @returns {{ success: boolean, data: { role, experience, interviewType, skills, projects }, message?: string }}
+ * Upload a PDF resume and get AI-extracted interview fields.
+ * @param {File} file - The PDF file to analyze.
+ * @returns {Promise<{ success: boolean, data: object | null, message?: string }>}
  */
 export async function analyzeResume(file) {
   try {
-    console.log("🚀 [Frontend] Uploading resume:", file.name);
-
     const formData = new FormData();
     formData.append("resume", file);
 
-    console.log("📤 Sending to backend...");
-    const response = await resumeApi.post("/analyze", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    console.log("✅ Response received:", response.data);
-
+    const response = await resumeApi.post("/analyze", formData);
     return response.data;
   } catch (error) {
-    console.error("❌ Resume analysis error:");
-    console.error("Status:", error.response?.status);
-    console.error("Message:", error.response?.data?.message);
-    console.error("Error data:", error.response?.data);
-    console.error("Axios error:", error.message);
+    console.error("Resume analysis error:", error.response?.data || error.message);
 
     return {
       success: false,

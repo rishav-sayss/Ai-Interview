@@ -1,99 +1,122 @@
 import pdfParse from "pdf-parse";
 import { analyzeResume } from "../aiservice/ai.service.js";
 
+const VALID_INTERVIEW_TYPES = new Set([
+  "Technical Interview",
+  "Behavioral Interview",
+  "System Design",
+  "HR Interview",
+]);
+
+const extractJson = (value) => {
+  const text = String(value || "")
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+
+  if (start === -1 || end === -1 || end < start) {
+    throw new Error("AI returned an invalid response");
+  }
+
+  return text.slice(start, end + 1);
+};
+
+const toStringArray = (value) => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (typeof item === "string") return item.trim();
+      if (item && typeof item === "object") {
+        return item.name || item.title || item.position || item.description || "";
+      }
+      return "";
+    })
+    .filter(Boolean);
+};
+
+const normalizeExperience = (value) => {
+  if (typeof value === "string") return value.trim();
+  if (!Array.isArray(value) || value.length === 0) return "";
+
+  return value
+    .map((item) => {
+      if (typeof item === "string") return item.trim();
+      if (!item || typeof item !== "object") return "";
+
+      return [item.position, item.company, item.duration].filter(Boolean).join(" - ");
+    })
+    .filter(Boolean)
+    .join(", ");
+};
+
+const normalizeInterviewType = (value) => {
+  if (VALID_INTERVIEW_TYPES.has(value)) return value;
+
+  const normalized = String(value || "").toLowerCase();
+  if (normalized.includes("system")) return "System Design";
+  if (normalized.includes("behavior") || normalized.includes("hr")) return "Behavioral Interview";
+
+  return "Technical Interview";
+};
+
+const normalizeResumeData = (data) => ({
+  role: typeof data.role === "string" ? data.role.trim() : "",
+  experience: normalizeExperience(data.experience),
+  interviewType: normalizeInterviewType(data.interviewType),
+  skills: toStringArray(data.skills),
+  projects: toStringArray(data.projects),
+});
+
+const parseAiResponse = (aiResponse) => {
+  const json = extractJson(aiResponse);
+  return normalizeResumeData(JSON.parse(json));
+};
+
 export const uploadResume = async (req, res) => {
   try {
-    console.log("\n🚀 [RESUME UPLOAD] Request received");
+    console.log("[Resume] Upload request received");
 
-    // Check file
     if (!req.file) {
-      console.log("❌ No file provided");
       return res.status(400).json({
         success: false,
-        message: "Resume file required",
+        message: "Resume file is required.",
       });
     }
 
-    console.log("📄 File received:", req.file.originalname);
-    console.log("📊 File size:", req.file.size, "bytes");
-
-    // Parse PDF
-    console.log("⏳ Parsing PDF...");
     const pdfData = await pdfParse(req.file.buffer);
-    const resumeText = pdfData.text;
+    const resumeText = pdfData.text?.trim();
 
-    console.log("✅ PDF parsed. Text length:", resumeText.length);
-    console.log("📝 Text preview:", resumeText.substring(0, 100));
-
-    if (!resumeText || resumeText.trim().length === 0) {
-      console.log("❌ No text extracted from PDF");
+    if (!resumeText) {
       return res.status(400).json({
         success: false,
-        message: "Could not extract text from PDF",
+        message: "Could not extract text from this PDF.",
       });
     }
-
-    // Call AI service
-    console.log("🤖 Calling AI service for analysis...");
-    console.log("⏱️  Start time:", new Date().toISOString());
 
     const aiResponse = await analyzeResume(resumeText);
+    const data = parseAiResponse(aiResponse);
 
-    console.log("✅ AI response received at:", new Date().toISOString());
-
-    // Clean and parse JSON
-    console.log("🔍 Parsing AI response...");
-    const cleanJson = aiResponse
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-
-    console.log("📄 Clean JSON preview:", cleanJson.substring(0, 150));
-
-    let parsedData;
-    try {
-      parsedData = JSON.parse(cleanJson);
-      console.log("✅ JSON parsed successfully");
-    } catch (parseError) {
-      console.error("⚠️  JSON parse error:", parseError.message);
-      console.error("Full response was:", cleanJson);
-
-      // Return default values if parsing fails
-      parsedData = {
-        role: "Developer",
-        experience: "2-3 years",
-        interviewType: "Technical Interview",
-        skills: ["JavaScript", "React", "Node.js"],
-        education: "Bachelor's Degree",
-        projects: ["See resume for details"],
-      };
-    }
-
-    console.log("📊 Final parsed data:", parsedData);
-
-    const response = {
+    return res.status(200).json({
       success: true,
-      message: "Resume analyzed successfully",
-      data: {
-        role: parsedData.role || "",
-        experience: parsedData.experience || "",
-        interviewType: parsedData.interviewType || "Technical Interview",
-        skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
-        projects: Array.isArray(parsedData.projects) ? parsedData.projects : [],
-      },
-    };
-
-    console.log("✅ Sending response to client\n");
-
-    return res.status(200).json(response);
+      message: "Resume analyzed successfully.",
+      data,
+    });
   } catch (error) {
-    console.error("\n❌ ERROR in uploadResume:");
-    console.error("Message:", error.message);
-    console.error("Stack:", error.stack);
+    console.error("[Resume] Analysis failed:", error.message);
 
-    res.status(500).json({
+    const isConfigError =
+      error.message.includes("GEMINI_API_KEY") ||
+      error.message.includes("Google AI Studio");
+
+    return res.status(isConfigError ? 503 : 500).json({
       success: false,
-      message: "Error analyzing resume: " + error.message,
+      message: isConfigError
+        ? "AI resume analysis is not configured. Please add a valid Gemini API key in backend/.env and restart the backend server."
+        : "Could not analyze the resume. Please try again or fill the fields manually.",
       error: error.message,
     });
   }
