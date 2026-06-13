@@ -8,10 +8,6 @@ const getGeminiApiKey = () => {
     throw new Error("GEMINI_API_KEY is missing in backend/.env");
   }
 
-  if (!apiKey.startsWith("AIza")) {
-    throw new Error("GEMINI_API_KEY looks invalid. Use a Gemini API key from Google AI Studio.");
-  }
-
   return apiKey;
 };
 
@@ -44,7 +40,61 @@ ${resumeText}
 
   const genAI = new GoogleGenerativeAI(getGeminiApiKey());
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: "gemini-3.5-flash",
+    generationConfig: {
+      responseMimeType: "application/json",
+    },
+  });
+
+  const result = await model.generateContent(prompt);
+  return result.response.text();
+};
+
+export const generateInterviewQuestions = async ({
+  role,
+  experience,
+  interviewType,
+  skills = [],
+  projects = [],
+  totalQuestions = 5,
+}) => {
+  const safeSkills = Array.isArray(skills) ? skills : [];
+  const safeProjects = Array.isArray(projects) ? projects : [];
+
+  const prompt = `
+You are a professional interviewer.
+
+Create ${totalQuestions} interview questions from this candidate profile and return only valid JSON.
+
+Candidate profile:
+- Role: ${role || "Candidate"}
+- Experience: ${experience || "Not specified"}
+- Interview type: ${interviewType || "Technical Interview"}
+- Skills: ${safeSkills.join(", ") || "Not specified"}
+- Projects: ${safeProjects.join(", ") || "Not specified"}
+
+Required JSON shape:
+{
+  "questions": [
+    {
+      "id": 1,
+      "question": "string",
+      "focus": "string"
+    }
+  ]
+}
+
+Rules:
+- Ask practical, interview-style questions.
+- Mention resume skills or projects when useful.
+- Keep each question under 28 words.
+- Make questions progressively deeper.
+- Return exactly ${totalQuestions} questions.
+`;
+
+  const genAI = new GoogleGenerativeAI(getGeminiApiKey());
+  const model = genAI.getGenerativeModel({
+    model: "gemini-3.5-flash",
     generationConfig: {
       responseMimeType: "application/json",
     },
