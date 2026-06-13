@@ -1,5 +1,21 @@
 import { generateInterviewQuestions } from "../aiservice/ai.service.js";
 
+const extractJson = (value) => {
+  const text = String(value || "")
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+
+  if (start === -1 || end === -1 || end < start) {
+    throw new Error("AI returned an invalid JSON response structure");
+  }
+
+  return text.slice(start, end + 1);
+};
+
 export const generateInterviewQuestionsController = async (req, res) => {
   try {
     const {
@@ -20,7 +36,11 @@ export const generateInterviewQuestionsController = async (req, res) => {
       totalQuestions,
     });
 
-    const questions = JSON.parse(result);
+    const jsonText = extractJson(result);
+    const parsed = JSON.parse(jsonText);
+    
+    // Extract questions array from the parsed object
+    const questions = Array.isArray(parsed) ? parsed : parsed.questions || [];
 
     return res.status(200).json({
       success: true,

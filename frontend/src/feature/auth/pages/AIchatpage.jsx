@@ -54,21 +54,41 @@ function AiBadge() {
 /* ── Resume Analysis Result Card ─────────────────────────────────────────────── */
 function ResumeResultCard({ data, onClear }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden animate-fadeIn">
+    <div className="bg-white border border-emerald-100 rounded-2xl shadow-md overflow-hidden animate-fadeIn transition-all duration-300 hover:shadow-lg hover:border-emerald-200">
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+          height: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #10b981;
+        }
+      `}</style>
+
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center">
-            <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+      <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-emerald-50 to-teal-50/50 border-b border-emerald-100/60">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center shadow-sm shadow-emerald-200">
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <span className="text-sm font-bold text-gray-800">Resume Analysis Result</span>
+          <div>
+            <span className="text-sm font-bold text-gray-800 block">AI Resume Extractor</span>
+            <span className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wider">Analysis complete & auto-filled</span>
+          </div>
         </div>
         <button
           onClick={onClear}
-          className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50"
-          title="Remove"
+          className="text-gray-400 hover:text-red-500 transition-all duration-200 p-1.5 rounded-xl hover:bg-red-50 cursor-pointer"
+          title="Remove resume and clear fields"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -76,36 +96,76 @@ function ResumeResultCard({ data, onClear }) {
         </button>
       </div>
 
-      <div className="px-5 py-4 flex flex-col gap-4">
-        {/* Projects */}
-        {data.projects && data.projects.length > 0 && (
-          <div>
-            <p className="text-xs font-bold text-gray-700 mb-2">Projects:</p>
-            <ul className="flex flex-col gap-1.5 pl-1">
-              {data.projects.map((project, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0" />
-                  {project}
-                </li>
-              ))}
-            </ul>
+      {/* Scrollable body */}
+      <div className="px-5 py-5 flex flex-col gap-5 max-h-[250px] overflow-y-auto custom-scrollbar pr-2.5">
+        {/* Extracted Profile Details */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/70 rounded-xl p-3.5 border border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
+              <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 font-medium">Target Role</p>
+              <h3 className="text-sm font-bold text-gray-800 leading-tight">{data.role || "Not specified"}</h3>
+            </div>
           </div>
-        )}
+          <div className="flex items-center gap-4 sm:border-l sm:border-gray-200 sm:pl-4">
+            <div>
+              <p className="text-xs text-gray-400 font-medium">Experience</p>
+              <span className="inline-block mt-0.5 px-2 py-0.5 bg-gray-200/60 text-gray-700 text-xs font-bold rounded-md">
+                {data.experience || "Not specified"}
+              </span>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 font-medium">Interview Track</p>
+              <span className="inline-block mt-0.5 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-md border border-emerald-200/50">
+                {data.interviewType || "Technical Interview"}
+              </span>
+            </div>
+          </div>
+        </div>
 
         {/* Skills */}
         {data.skills && data.skills.length > 0 && (
           <div>
-            <p className="text-xs font-bold text-gray-700 mb-2">Skills:</p>
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138z" />
+              </svg>
+              <p className="text-xs font-bold text-gray-700 uppercase tracking-wider">Extracted Skills</p>
+            </div>
             <div className="flex flex-wrap gap-1.5">
               {data.skills.map((skill, i) => (
                 <span
                   key={i}
-                  className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-gray-700 border border-gray-200 shadow-sm transition-all duration-200 hover:border-emerald-300 hover:text-emerald-700"
                 >
                   {skill}
                 </span>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Projects */}
+        {data.projects && data.projects.length > 0 && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+              <p className="text-xs font-bold text-gray-700 uppercase tracking-wider">Key Projects Found</p>
+            </div>
+            <ul className="grid grid-cols-1 gap-2">
+              {data.projects.map((project, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600 bg-gray-50/50 p-2.5 rounded-lg border border-gray-100">
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <span className="font-semibold text-gray-700 leading-tight">{project}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </div>
@@ -257,7 +317,13 @@ function AIchatpage() {
         triggerFlash(filled);
 
         // Store for result card
-        setResumeResult({ skills: skills || [], projects: projects || [] });
+        setResumeResult({
+          role: r || "",
+          experience: exp || "",
+          interviewType: it || "",
+          skills: skills || [],
+          projects: projects || []
+        });
       } else {
         setError(result.message || "AI analysis failed. You can fill in the fields manually.");
       }
@@ -321,7 +387,15 @@ function AIchatpage() {
     if (!role.trim()) { setError("Please enter a role."); return; }
     if (!experience.trim()) { setError("Please enter your experience."); return; }
     setError("");
-    navigate("/interview", { state: { role, experience, interviewType } });
+    navigate("/interview", {
+      state: {
+        role,
+        experience,
+        interviewType,
+        skills: resumeResult?.skills || [],
+        projects: resumeResult?.projects || []
+      }
+    });
   };
 
   return (
@@ -329,10 +403,10 @@ function AIchatpage() {
       <Navbar />
 
       <div className="flex-1 flex items-center justify-center px-4 py-10">
-        <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col md:flex-row">
+        <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col md:flex-row md:h-[650px]">
 
           {/* ── LEFT PANEL ─────────────────────────────────────────────────── */}
-          <div className="md:w-[44%] bg-gradient-to-br from-emerald-100 via-green-50 to-teal-100 p-8 sm:p-10 flex flex-col justify-center gap-6">
+          <div className="md:w-[44%] bg-gradient-to-br from-emerald-100 via-green-50 to-teal-100 p-8 sm:p-10 flex flex-col justify-center gap-6 md:h-full">
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight mb-3">
                 Start Your <span className="text-emerald-600">AI</span> Interview
@@ -367,7 +441,7 @@ function AIchatpage() {
           </div>
 
           {/* ── RIGHT PANEL ────────────────────────────────────────────────── */}
-          <div className="md:w-[56%] p-8 sm:p-10 flex flex-col gap-4 overflow-y-auto max-h-[90vh]">
+          <div className="md:w-[56%] p-8 sm:p-10 flex flex-col gap-4 overflow-y-auto md:h-full custom-scrollbar">
             <h2 className="text-xl font-black text-gray-900">Interview Setup</h2>
 
             {/* Role */}

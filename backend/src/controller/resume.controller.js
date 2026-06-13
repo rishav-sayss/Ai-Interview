@@ -78,7 +78,6 @@ const parseAiResponse = (aiResponse) => {
 
 export const uploadResume = async (req, res) => {
   try {
-    console.log("[Resume] Upload request received");
 
     if (!req.file) {
       return res.status(400).json({
@@ -106,18 +105,10 @@ export const uploadResume = async (req, res) => {
       data,
     });
   } catch (error) {
-    console.error("[Resume] Analysis failed:", error.message);
-
-    const isConfigError =
-      error.message.includes("GEMINI_API_KEY") ||
-      error.message.includes("Google AI Studio");
-
-    return res.status(isConfigError ? 503 : 500).json({
+    return res.status(500).json({
       success: false,
-      message: isConfigError
-        ? "AI resume analysis is not configured. Please add a valid Gemini API key in backend/.env and restart the backend server."
-        : "Could not analyze the resume. Please try again or fill the fields manually.",
-      error: error.message,
+      message: error,
+      
     });
   }
 };

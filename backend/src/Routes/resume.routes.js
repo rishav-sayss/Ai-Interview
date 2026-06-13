@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import { uploadResume } from "../controller/resume.controller.js";
 
-const router = express.Router();
+const resumeRouter = express.Router();
 
 // Store file in memory (no disk writes)
 const upload = multer({
@@ -32,6 +32,6 @@ const handleResumeUpload = (req, res, next) => {
   });
 };
 
-router.post("/analyze", handleResumeUpload, uploadResume);
+resumeRouter.post("/analyze", handleResumeUpload, uploadResume);
 
-export default router;
+export default resumeRouter;

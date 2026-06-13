@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./Routes/auth.routes.js";
 import interviewRoutes from "./Routes/interview.routes.js";
+import resumeRouter from "./Routes/resume.routes.js";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
@@ -41,7 +42,7 @@ app.use(cookieParser());
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/resume", resumeRoutes);
+app.use("/api/resume", resumeRouter);
 app.use("/api/interview", interviewRoutes);
 
 export default app;
