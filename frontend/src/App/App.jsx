@@ -7,7 +7,6 @@ import { useEffect } from "react";
 function App() {
   const { handelgetme } = useHooks();
   const user = useSelector((state) => state.auth.user);
-  console.log(user);
 
   useEffect(() => {
     handelgetme();

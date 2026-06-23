@@ -1,105 +1,132 @@
-import "../config/env.js";
+ import "../config/env.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const getGeminiApiKey = () => {
-  const apiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "").trim();
+// ─── Step 1: Read the API key once at startup ─────────────────────────────────
+//
+// If the key is missing, we throw immediately when the module loads —
+// not silently later when a function is called.
 
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is missing in backend/.env");
+const API_KEY = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "").trim();
+
+if (!API_KEY) {
+  throw new Error("GEMINI_API_KEY is missing. Add it to backend/.env");
+}
+
+// ─── Step 2: Create the client ONCE (not on every function call) ──────────────
+//
+// Creating a new GoogleGenerativeAI instance on every request wastes memory.
+// This single instance is reused for the lifetime of the server.
+
+const geminiModel = new GoogleGenerativeAI(API_KEY).getGenerativeModel({
+  model: "gemini-2.0-flash",
+  generationConfig: {
+    responseMimeType: "application/json", // tells Gemini to always return JSON
+  },
+});
+
+// ─── Step 3: Helper — call the API and parse the JSON response ────────────────
+//
+// Both functions below need the same two steps:
+//   1. Send a prompt to Gemini
+//   2. Parse the returned JSON string into a JavaScript object
+//
+// Centralising this means error handling lives in one place.
+
+async function callGemini(prompt) {
+  const result = await geminiModel.generateContent(prompt);
+  const text = result.response.text();
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Gemini returned invalid JSON. Raw response: " + text);
+  }
+}
+
+// ─── analyzeResume ────────────────────────────────────────────────────────────
+//
+// Takes the plain text of a resume and returns a structured object:
+// { role, experience, interviewType, skills[], projects[] }
+
+export async function analyzeResume(resumeText) {
+  if (!resumeText?.trim()) {
+    throw new Error("resumeText is required and cannot be empty.");
   }
 
-  return apiKey;
-};
-
-export const analyzeResume = async (resumeText) => {
   const prompt = `
 You are an expert technical recruiter.
 
-Analyze this resume and return only valid JSON. Do not wrap the JSON in markdown.
+Analyze the resume below and return ONLY valid JSON — no markdown, no explanation.
 
 Required JSON shape:
 {
-  "role": "string",
-  "experience": "string",
-  "interviewType": "Technical Interview",
-  "skills": ["string"],
-  "projects": ["string"]
+  "role":         "string  — job title, inferred from skills/projects if not stated",
+  "experience":   "string  — e.g. Fresher | 6 months | 2 years",
+  "interviewType":"string  — one of: Technical Interview | Behavioral Interview | System Design | HR Interview",
+  "skills":       ["string"],
+  "projects":     ["string"]
 }
 
 Rules:
-- Infer role from skills/projects if it is not explicitly present.
-- Keep experience as a short human-readable string like "Fresher", "6 months", or "2 years".
-- interviewType must be one of: "Technical Interview", "Behavioral Interview", "System Design", "HR Interview".
-- Pick "Technical Interview" by default.
-- skills and projects must always be arrays.
-- If a field is unknown, use an empty string or empty array.
+- Default interviewType to "Technical Interview" when unsure.
+- Use "" or [] for any field you cannot determine.
 
 Resume:
 ${resumeText}
 `;
 
-  const genAI = new GoogleGenerativeAI(getGeminiApiKey());
-  const model = genAI.getGenerativeModel({
-    model: "gemini-3.5-flash",
-    generationConfig: {
-      responseMimeType: "application/json",
-    },
-  });
+  return callGemini(prompt);
+  // Returns: { role, experience, interviewType, skills, projects }
+}
 
-  const result = await model.generateContent(prompt);
-  return result.response.text();
-};
+// ─── generateInterviewQuestions ───────────────────────────────────────────────
+//
+// Takes a candidate profile and returns an array of interview questions:
+// { questions: [{ id, question, focus }] }
 
-export const generateInterviewQuestions = async ({
+export async function generateInterviewQuestions({
   role,
   experience,
   interviewType,
   skills = [],
   projects = [],
   totalQuestions = 5,
-}) => {
-  const safeSkills = Array.isArray(skills) ? skills : [];
-  const safeProjects = Array.isArray(projects) ? projects : [];
+}) {
+  if (!role?.trim()) {
+    throw new Error("role is required to generate interview questions.");
+  }
 
   const prompt = `
 You are a professional interviewer.
 
-Create ${totalQuestions} interview questions from this candidate profile and return only valid JSON.
+Generate exactly ${totalQuestions} interview questions for the candidate below.
+Return ONLY valid JSON — no markdown, no explanation.
 
 Candidate profile:
-- Role: ${role || "Candidate"}
-- Experience: ${experience || "Not specified"}
+- Role:           ${role}
+- Experience:     ${experience || "Not specified"}
 - Interview type: ${interviewType || "Technical Interview"}
-- Skills: ${safeSkills.join(", ") || "Not specified"}
-- Projects: ${safeProjects.join(", ") || "Not specified"}
+- Skills:         ${skills.join(", ") || "Not specified"}
+- Projects:       ${projects.join(", ") || "Not specified"}
 
 Required JSON shape:
 {
   "questions": [
     {
-      "id": 1,
-      "question": "string",
-      "focus": "string"
+      "id":       1,
+      "question": "string — under 28 words",
+      "focus":    "string — e.g. Problem Solving | System Design | Communication"
     }
   ]
 }
 
 Rules:
-- Ask practical, interview-style questions.
-- Mention resume skills or projects when useful.
-- Keep each question under 28 words.
-- Make questions progressively deeper.
+- Questions must be practical and interview-ready.
+- Reference the candidate's skills or projects where relevant.
+- Make questions progressively harder (easy → advanced).
 - Return exactly ${totalQuestions} questions.
 `;
 
-  const genAI = new GoogleGenerativeAI(getGeminiApiKey());
-  const model = genAI.getGenerativeModel({
-    model: "gemini-3.5-flash",
-    generationConfig: {
-      responseMimeType: "application/json",
-    },
-  });
-
-  const result = await model.generateContent(prompt);
-  return result.response.text();
-};
+  return callGemini(prompt);
+  // Returns: { questions: [{ id, question, focus }, ...] }
+}

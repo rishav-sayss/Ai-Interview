@@ -28,10 +28,9 @@ export function useHooks() {
     try {
       dispatch(setLoading(true));
       const data = await getuser();
-      console.log(data.user);
-      dispatch(setUser(data.user));
-    } catch (error) {
-      console.log(error);
+      dispatch(setUser(data.user || data));
+    } catch {
+      dispatch(setUser(null));
     } finally {
       dispatch(setLoading(false));
     }
@@ -39,3 +38,4 @@ export function useHooks() {
 
   return { handelregister, handleLogin, handleLogout, handelgetme };
 }
+
