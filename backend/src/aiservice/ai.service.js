@@ -18,7 +18,7 @@ if (!API_KEY) {
 // This single instance is reused for the lifetime of the server.
 
 const geminiModel = new GoogleGenerativeAI(API_KEY).getGenerativeModel({
-  model: "gemini-3.8-flash",
+  model: "gemini-3.6-flash",
   generationConfig: {
     responseMimeType: "application/json", // tells Gemini to always return JSON
   },
